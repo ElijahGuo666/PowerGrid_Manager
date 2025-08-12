@@ -1,0 +1,276 @@
+电网管理平台API使用示例
+================================
+
+一、基础使用示例
+--------------------------------
+
+1. 使用同步API（推荐）：
+```python
+#!/usr/bin/env python3
+# -*- coding: UTF-8 -*- 
+
+import dwglpt_api
+
+# 创建资产域API实例，会自动处理登录和会话管理
+asset_api = dwglpt_api.DwglptAssetAPI()
+
+# 查询当前用户信息
+user_info = asset_api.common_currentUser()
+print("当前用户:", user_info)
+
+# 查询南宁供电局下的所有子节点
+children = asset_api.asset_person_choose_children("11739068305E522EE05336050A0A3A5C")
+for child in children:
+    print(f"发现节点: {child['fullName']} (ID: {child['key']})")
+```
+
+2. 使用异步API：
+```python
+#!/usr/bin/env python3
+# -*- coding: UTF-8 -*- 
+
+import asyncio
+from dwglpt_http import DwglptHttp
+from dwglpt_person_api import DwglptPersonAPI
+
+async def main():
+    # 创建HTTP会话
+    http = DwglptHttp()
+    await http.http_init()
+    
+    # 创建人员API实例
+    person_api = DwglptPersonAPI(http)
+    
+    # 获取当前用户信息
+    user_info = await person_api.get_whoami()
+    print("当前用户:", user_info)
+    
+    # 获取用户组织链
+    org_chain = await person_api.get_user_org_chain("用户ID")
+    print("组织链:", org_chain)
+    
+    # 销毁会话
+    await http.http_destory()
+
+# 运行异步函数
+asyncio.run(main())
+```
+
+二、人员和组织查询示例
+--------------------------------
+
+1. 批量查询人员信息：
+```python
+import dwglpt_api
+
+asset_api = dwglpt_api.DwglptAssetAPI()
+
+# 获取人员ID列表
+person_ids = ["ID1", "ID2", "ID3"]
+
+# 批量查询人员详细信息
+persons = asset_api.asset_person_choose_selectedData(person_ids, choosetype="user")
+for person in persons:
+    print(f"姓名: {person['name']}, 手机: {person['mobilePhone']}, 组织: {person['orgName']}")
+```
+
+2. 批量查询组织信息：
+```python
+import dwglpt_api
+
+asset_api = dwglpt_api.DwglptAssetAPI()
+
+# 获取组织ID列表
+org_ids = ["ORG1", "ORG2", "ORG3"]
+
+# 批量查询组织详细信息
+orgs = asset_api.asset_person_choose_selectedData(org_ids, choosetype="org")
+for org in orgs:
+    print(f"组织名称: {org['name']}, 组织代码: {org['orgCode']}")
+```
+
+3. 组织名称模糊匹配：
+```python
+from dwglpt_person_api import resolve_org_code
+
+# 通过自然语言组织名称获取组织代码
+matches = resolve_org_code("变电三所/站用电源班")
+for match in matches:
+    print(f"匹配组织: {match[0]}, 匹配度: {match[1]}%, 组织代码: {match[2]}")
+```
+
+三、生产计划查询示例
+--------------------------------
+
+1. 查询维护检修计划：
+```python
+import dwglpt_api
+
+asset_api = dwglpt_api.DwglptAssetAPI()
+
+# 查询指定组织的维护检修计划
+plans = asset_api.asset_pplan_queryPlanList(
+    orgCode="04016306",
+    planBeginTime="2025-06-25",
+    planEndTime="2025-06-25"
+)
+
+print("计划列表:", plans["list"])
+```
+
+2. 异步查询生产计划：
+```python
+import asyncio
+from dwglpt_http import DwglptHttp
+from dwglpt_pplan_api import DwglptPPlanAPI
+
+async def main():
+    http = DwglptHttp()
+    await http.http_init()
+    
+    pplan_api = DwglptPPlanAPI(http)
+    
+    plans = await pplan_api.get_plan_list(
+        orgCode="04016306",
+        planBeginTime="2025-06-25",
+        planEndTime="2025-06-25"
+    )
+    
+    print("计划列表:", plans)
+    await http.http_destory()
+
+asyncio.run(main())
+```
+
+四、工作票查询示例
+--------------------------------
+
+```python
+import dwglpt_api
+
+asset_api = dwglpt_api.DwglptAssetAPI()
+
+# 查询指定组织的工作票
+tickets = asset_api.asset_wticket_query(
+    orgCode="04016306",
+    planBeginTime="2025-07-01 00:00:00",
+    planEndTime="2025-07-30 00:00:00"
+)
+
+print("工作票列表:", tickets["list"])
+```
+
+五、短信推送示例
+--------------------------------
+
+1. 发送短信：
+```python
+from elink_push_real import elink_push
+
+# 发送短信
+success, result = elink_push("13800138000", "测试短信内容")
+if success:
+    print(f"短信发送成功，消息ID: {result}")
+else:
+    print(f"短信发送失败: {result}")
+```
+
+2. 撤销短信：
+```python
+from elink_push_real import elink_revoke
+
+# 撤销短信
+success, result = elink_revoke("消息ID")
+if success:
+    print("短信撤销成功")
+else:
+    print(f"短信撤销失败: {result}")
+```
+
+六、直接HTTP调用示例
+--------------------------------
+
+```python
+import dwglpt_api
+
+asset_api = dwglpt_api.DwglptAssetAPI()
+
+# 直接调用HTTP接口（从浏览器开发者工具复制的请求参数）
+payload = {
+    "queryCondition": {
+        "bureauCode": "0401",
+        "eqtAPIVersion": "V1",
+        "flName": "",
+        "runningState": "",
+        "baseVoltageId": "",
+        "dominionMode": "",
+        "subType": "",
+        "centerSubstationId": "",
+        "vindicateOid": "",
+        "plantTransferDateStrS": "",
+        "plantTransferDateStrE": "",
+        "isNewPower": "",
+        "investSourceType": ""
+    },
+    "pageIndex": 1,
+    "pageSize": 25,
+    "sortFieldName": "id",
+    "eqtAPIVersion": "V1",
+    "isAsc": True,
+    "bureauCode": "0401"
+}
+
+response = asset_api.http_post(
+    "/gmp/sp/cmquerymanageservice/cimquery/substationInfo/substationList",
+    payload
+)
+
+print("响应数据:", response)
+```
+
+七、错误处理示例
+--------------------------------
+
+```python
+import dwglpt_api
+import logging
+
+# 设置日志级别
+logging.basicConfig(level=logging.DEBUG)
+
+try:
+    asset_api = dwglpt_api.DwglptAssetAPI()
+    user_info = asset_api.common_currentUser()
+    print("登录成功:", user_info)
+except Exception as e:
+    print(f"登录失败: {e}")
+    # 可能需要重新输入USB-KEY密码或检查网络连接
+```
+
+八、注意事项
+--------------------------------
+
+1. 用户名格式通常为：username@nng.gx.csg.cn
+2. 首次登录会保存cookie到pickle目录下
+3. 如果cookie有效，后续调用会直接使用已保存的cookie
+4. 如果cookie失效，会自动重新登录
+5. 使用USB-KEY登录时，需要输入密码
+6. 网络连接需要能够访问内网地址
+7. 批量查询时建议分批处理，避免单次请求过大
+8. 短信推送需要确保手机号在系统中存在对应用户
+
+九、依赖安装
+--------------------------------
+
+```bash
+pip install aiohttp pycryptodome ddddocr fuzzywuzzy requests gmssl
+```
+
+十、配置文件说明
+--------------------------------
+
+- pickle/：存储登录会话和cookie信息
+- orgcode_result.json：组织代码映射表
+- ddddocr/：验证码识别库文件
+
+如需更详细的API参数说明，请参考各文件内的详细注释。 

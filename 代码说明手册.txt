@@ -1,0 +1,165 @@
+【项目结构与代码说明手册】
+
+本项目为电网管理平台相关的自动化接口调用与数据处理工具，主要实现了数字身份认证、资产域登录、人员与组织信息查询、生产计划查询、短信推送等功能。
+
+一、主要文件及功能概述
+--------------------------------
+1. iam_api.py (数字身份认证平台API)
+   - 负责数字身份平台（IAM）的自动化登录流程，包含12步完整登录流程
+   - 支持验证码识别、密码加密、获取业务系统登录cookie等
+   - 提供资产域、人资域、计财域三大域的会话获取功能
+   - 依赖 ddddocr 进行验证码识别，依赖 pycryptodome 进行加密
+
+2. dwglpt_api.py (电网管理平台三大域API)
+   - 提供电网管理平台资产域、人资域、计财域的API封装
+   - 包含基础类 DwglptBaseAPI 和具体域实现类
+   - 资产域API：人员查询、组织查询、维护检修计划查询、工作票查询
+   - 自动处理登录、会话管理、cookie持久化
+   - 支持RSA加密的ID参数处理
+
+3. dwglpt_http.py (异步HTTP会话管理)
+   - 封装了电网管理平台资产域的异步HTTP会话管理
+   - 提供自动登录、cookie持久化、会话管理等功能
+   - 支持异步GET/POST请求
+   - 依赖 iam_api.py 实现自动登录和cookie获取
+
+4. dwglpt_encrypt.py (加密工具)
+   - 提供基于RSA公钥的ID加密方法
+   - 主要用于对人员/组织ID等敏感信息进行加密，供后续接口调用
+   - 使用PKCS1_v1_5加密算法
+
+5. dwglpt_person_api.py (人员与组织API)
+   - 封装了人员与组织相关的API，包括批量查询人员/组织详情
+   - 支持获取下级节点、获取当前用户信息、获取用户组织链等
+   - 提供自然语言组织名到组织代码的模糊匹配
+   - 依赖 dwglpt_http.py 进行HTTP请求，依赖 dwglpt_encrypt.py 进行ID加密
+
+6. dwglpt_pplan_api.py (生产计划API)
+   - 封装了生产计划相关API，支持按组织、时间范围查询计划列表
+   - 提供维护检修计划查询功能
+   - 依赖 dwglpt_http.py 进行HTTP请求
+
+7. elink_push_real.py (短信推送服务)
+   - 提供短信发送和撤销功能
+   - 使用SM3加密进行签名验证
+   - 支持统一的API调用接口 ServiceClientV2
+   - 包含完整的请求头构建、URL构建、签名生成等功能
+
+8. main.py (主程序示例)
+   - 演示电网管理平台资产域API的使用方法
+   - 包含人员查询、组织查询、计划查询、工作票查询的完整示例
+   - 展示如何直接调用HTTP接口
+
+9. ddddocr/ (验证码识别库)
+   - 第三方验证码识别库，供 iam_api.py 调用
+
+10. pickle/ (会话持久化)
+    - 存储登录会话和cookie信息
+    - 支持会话自动刷新和复用
+
+--------------------------------
+二、主要调用关系
+--------------------------------
+1. dwglpt_http.py 依赖 iam_api.py
+   - 用于自动登录数字身份平台，获取资产域cookie
+
+2. dwglpt_person_api.py、dwglpt_pplan_api.py 依赖 dwglpt_http.py
+   - 通过 DwglptHttp 类发起带cookie的API请求
+
+3. dwglpt_person_api.py 依赖 dwglpt_encrypt.py
+   - 查询人员/组织详情时，先对ID进行加密
+
+4. dwglpt_api.py 依赖 iam_api.py
+   - 用于获取三大域的登录会话
+
+5. iam_api.py 依赖 ddddocr
+   - 用于识别登录验证码
+
+--------------------------------
+三、典型流程举例
+--------------------------------
+【数字身份认证登录流程】
+1. iam_api.py 的 iam_login() 执行12步登录流程：
+   - 获取lck参数 → 获取挑战码 → PKI服务初始化 → 证书签名 → 认证提交
+   - 获取登录token → 访问业务系统完成登录
+
+【资产域自动登录与API调用】
+1. dwglpt_api.py 的 DwglptAssetAPI.__init__() 会自动判断本地cookie是否有效
+2. 若无效，则调用 iam_api.py 的 iam_login() 完成数字身份平台自动登录
+3. 登录成功后，调用 iam_get_dwglpt_asset_domain_session() 获取资产域会话
+4. 会话持久化到本地，后续API请求自动带上
+
+【人员信息批量查询】
+1. dwglpt_person_api.py 的 DwglptPersonAPI.get_detail(pids) 首先对每个pid调用 dwglpt_encrypt.py 的 encrypt_id 进行加密
+2. 分批调用资产域API，获取人员/组织详细信息
+
+【生产计划查询】
+1. dwglpt_pplan_api.py 的 DwglptPPlanAPI.get_plan_list() 通过 DwglptHttp.post() 发送请求，获取指定组织、时间范围的计划数据
+
+【短信推送】
+1. elink_push_real.py 的 elink_push() 使用 ServiceClientV2 构建请求
+2. 自动生成SM3签名、时间戳、随机数等安全参数
+3. 发送POST请求到短信服务
+
+--------------------------------
+四、依赖说明
+--------------------------------
+- aiohttp：异步HTTP请求库
+- pycryptodome：加密库（RSA、SM3）
+- ddddocr：验证码识别
+- fuzzywuzzy：字符串模糊匹配
+- pickle：本地cookie持久化
+- requests：同步HTTP请求库
+- gmssl：国密算法库（SM3）
+
+--------------------------------
+五、文件间调用链示意
+--------------------------------
+（以典型资产域API调用为例）
+
+DwglptPersonAPI/DwglptPPlanAPI
+    ↓
+DwglptHttp（自动带cookie）
+    ↓
+（如需登录）
+    ↓
+iam_api.py（自动登录、验证码识别、加密）
+    ↓
+ddddocr、pycryptodome
+
+（以短信推送为例）
+
+elink_push()
+    ↓
+ServiceClientV2（构建请求、签名）
+    ↓
+SM3Utils（SM3加密）
+    ↓
+requests（发送HTTP请求）
+
+--------------------------------
+六、快速上手建议
+--------------------------------
+1. 先运行 main.py 或 dwglpt_person_api.py，确保能自动登录并获取cookie
+2. 按需调用 DwglptPersonAPI、DwglptPPlanAPI 的接口，获取人员、组织、计划等信息
+3. 使用 elink_push_real.py 进行短信推送测试
+4. 若需扩展其它API，建议复用 DwglptHttp 统一管理cookie和请求
+
+--------------------------------
+七、安全特性
+--------------------------------
+1. RSA加密：对敏感ID进行加密传输
+2. SM3签名：短信服务使用SM3哈希进行签名验证
+3. 会话管理：自动处理登录会话的获取、验证、刷新
+4. 错误处理：完善的异常处理和日志记录
+
+--------------------------------
+八、性能优化
+--------------------------------
+1. 批量查询：支持大批量数据的分批处理
+2. 会话复用：自动保存和复用登录会话，减少重复登录
+3. 异步支持：部分模块支持异步HTTP请求，提高并发性能
+4. 缓存机制：本地缓存组织代码映射等静态数据
+
+--------------------------------
+如需更详细的接口参数、返回值说明，请参考各文件内的详细注释。 

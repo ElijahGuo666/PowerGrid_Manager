@@ -1,0 +1,235 @@
+【需求】
+写一个操作票检查程序，检查操作票的正确性。
+全部方法都写在oticket_validator.py文件中。主要包括：
+1. validate_time(otickets)  // 检查操作票的时间逻辑是否正确，包括单票时间顺序和多票时间冲突
+2. validate_plan_binding(otickets, plan_list=None)  // 检查操作票是否正确绑定了检修计划，及检查"workPlanNos"有没有数据
+3. validate_content(otickets)  // 检查操作票的内容规范性和完整性
+其他方法作为辅助完成以上这几个方法的函数。
+
+【输入】
+输入数据otickets格式为：
+[
+    {
+        "_id": None,  // MongoDB主键，通常为ObjectId，这里为None
+        "actionType": None,  // 操作类型，通常用于区分不同的操作动作
+        "idList": None,  // id列表，批量操作时用
+        "pageNo": 1,  // 当前页码
+        "pageSize": 200,  // 每页条数
+        "sortFieldName": None,  // 排序字段名
+        "sortType": "",  // 排序类型（升序/降序）
+        "primaryName": None,  // 主名称，可能用于搜索
+        "sortNames": [],  // 排序字段名列表
+        "sortTypes": [],  // 排序类型列表
+        "sortFields": [],  // 排序字段列表
+        "optimisticLockVersion": 12,  // 乐观锁版本号
+        "createTime": 1753953966000,  // 创建时间（时间戳，毫秒）
+        "updateTime": 1754030244000,  // 更新时间（时间戳，毫秒）
+        "dataFrom": "0",  // 数据来源标识
+        "provinceCode": "04",  // 省份代码
+        "bureauCode": "0401",  // 局代码
+        "startCreateTime": None,  // 创建时间起始（查询用）
+        "endCreateTime": None,  // 创建时间结束（查询用）
+        "startUpdateTime": None,  // 更新时间起始（查询用）
+        "endUpdateTime": None,  // 更新时间结束（查询用）
+        "id": "0f006c45f8874d06a7f3b53d8e6512a1",  // 操作票唯一ID
+        "oticketType": "1",  // 操作票类型
+        "oticketSource": 7,  // 操作票来源
+        "powerGridFlag": 1,  // 是否电网标志
+        "createOid": "8adc55298c9271f8018cafdee68c11d9",  // 创建组织ID
+        "createOcode": "04016311",  // 创建组织代码
+        "createOname": "五象巡维班",  // 创建组织名称
+        "operationTask": "将35kV百镇线312线路全部保护投入",  // 操作任务内容
+        "functionLocationId": "040102097D918ECA0347CFA2A06432BC38596B",  // 功能位置ID
+        "functionLocationName": "35kV镇龙站",  // 功能位置名称
+        "ticketState": "4",  // 操作票状态
+        "whetherQualified": None,  // 是否合格
+        "whetherNomative": None,  // 是否规范
+        "firstAuditUid": "E8B895BC612C48568414CA0427E5EB17",  // 初审人ID
+        "firstAuditUname": "凌福",  // 初审人姓名
+        "secondAuditUid": "E8B895BC612C48568414CA0427E5EB17",  // 复审人ID
+        "secondAuditUname": "凌福",  // 复审人姓名
+        "reportUid": "E8B895BC612C48568414CA0427E5EB17",  // 上报人ID
+        "reportUname": "凌福",  // 上报人姓名
+        "receiveReportUid": "2961FE73B98443B3A976D9AE200859BE",  // 接收上报人ID
+        "receiveReportUname": "潘美蓉",  // 接收上报人姓名
+        "issueOrderUid": "2961FE73B98443B3A976D9AE200859BE",  // 下发人ID
+        "issueOrderUname": "潘美蓉",  // 下发人姓名
+        "takeOrderUid": "E8B895BC612C48568414CA0427E5EB17",  // 接单人ID
+        "takeOrderUname": "凌福",  // 接单人姓名
+        "watchUid": "E8B895BC612C48568414CA0427E5EB17",  // 监护人ID
+        "watchUname": "凌福",  // 监护人姓名
+        "issueOrderDept": "LAND_DISPATCH",  // 下发部门
+        "generateDate": 1754000507000,  // 生成时间（时间戳，毫秒）
+        "takeOrderTime": 1754000220000,  // 接单时间（时间戳，毫秒）
+        "operationStartTime": 1754000580000,  // 操作开始时间（时间戳，毫秒）
+        "operationEndTime": 1754000880000,  // 操作结束时间（时间戳，毫秒）
+        "serialNoStart": 2500058,  // 起始序号
+        "serialNoEnd": 2500058,  // 结束序号
+        "reportTime": 1754001000000,  // 上报时间（时间戳，毫秒）
+        "firstAuditDate": 1753997234000,  // 初审时间（时间戳，毫秒）
+        "secondAuditDate": 1754000507000,  // 复审时间（时间戳，毫秒）
+        "archiveTime": 1754041297000,  // 归档时间（时间戳，毫秒）
+        "checkOpinion": None,  // 审核意见
+        "remark": None,  // 备注
+        "qualifiedState": None,  // 合格状态
+        "resourceId": None,  // 资源ID
+        "stepCount": 10,  // 步骤总数
+        "mainStepCount": 3,  // 主要步骤数
+        "createUid": "D8CBF7C480634EC0A4379A13ABBFD547",  // 创建人ID
+        "createUname": "李春娇",  // 创建人姓名
+        "oticketStepList": None,  // 操作票步骤列表
+        "oticketSourceList": None,  // 操作票来源列表
+        "operatorUidList": None,  // 操作人ID列表
+        "operatorUnames": "李春娇",  // 操作人姓名
+        "guardianUnames": "凌福",  // 监护人姓名
+        "operationStartTimeEnd": None,  // 操作开始时间（结束，查询用）
+        "operationEndTimeEnd": None,  // 操作结束时间（结束，查询用）
+        "generateDateEnd": None,  // 生成时间（结束，查询用）
+        "operatorUids": None,  // 操作人ID（冗余字段）
+        "ticketStateList": None,  // 操作票状态列表
+        "createTimeEnd": None,  // 创建时间（结束，查询用）
+        "guardianUids": None,  // 监护人ID（冗余字段）
+        "guardianUidList": None,  // 监护人ID列表
+        "issueOrderDeptList": None,  // 下发部门列表
+        "operationPeriod": None,  // 操作周期
+        "operationStep": None,  // 操作步骤
+        "sequenceNo": None,  // 序列号
+        "processInsId": "af79ee9475384e1abb2339806de69f8d_891",  // 流程实例ID
+        "operationStartTimeStr": None,  // 操作开始时间（字符串）
+        "operationEndTimeStr": None,  // 操作结束时间（字符串）
+        "operationTime": "5",  // 操作时长（单位：分钟/小时，具体看业务）
+        "createTimeStr": None,  // 创建时间（字符串）
+        "generateDateStr": None,  // 生成时间（字符串）
+        "entryUid": None,  // 录入人ID
+        "entryUname": None,  // 录入人姓名
+        "takeOrderTimeStr": None,  // 接单时间（字符串）
+        "isNewPower": 2,  // 是否新电力标志
+        "dataBelongUnitOname": None,  // 数据归属单位名称
+        "dataBelongUnitOcode": None,  // 数据归属单位代码
+        "countyId": "8adc552b8c927382018ca3b1f80e0ccf",  // 县区ID
+        "countyName": "变电管理三所",  // 县区名称
+        "countyCode": "040163",  // 县区代码
+        "supplyId": None,  // 供电单位ID
+        "supplyName": None,  // 供电单位名称
+        "supplyCode": None,  // 供电单位代码
+        "oticketSourceStr": None,  // 操作票来源（字符串）
+        "provinceCodeList": None,  // 省份代码列表
+        "bureauCodeList": None,  // 局代码列表
+        "bureauName": "南宁供电局",  // 局名称
+        "provinceName": "广西电网有限责任公司",  // 省份名称
+        "isGraph": None,  // 是否图形化
+        "isLock": None,  // 是否锁定
+        "archiveTimeEnd": None,  // 归档时间（结束，查询用）
+        "archiveTimeStr": None,  // 归档时间（字符串）
+        "reportTimeStr": None,  // 上报时间（字符串）
+        "reportTimeStart": None,  // 上报时间（起始，查询用）
+        "reportTimeEnd": None,  // 上报时间（结束，查询用）
+        "operationStepRemark": None,  // 操作步骤备注
+        "isUseHint": None,  // 是否使用提示
+        "workPlanIds": "5c78e23da25a45f4bdb0c9e85c3fcc42",  // 绑定的检修计划ID
+        "workPlanNos": "SCWH0401250623001803",  // 绑定的检修计划编号
+        "outageId": None,  // 停电ID
+        "outageNo": None,  // 停电编号
+        "faultId": None,  // 故障ID
+        "faultCode": None,  // 故障代码
+        "orderId": None,  // 工单ID
+        "orderNo": None,  // 工单编号
+        "riskLevals": None,  // 风险等级列表
+        "isKeyStationStr": None,  // 是否关键站（字符串）
+        "riskLevalStr": None,  // 风险等级（字符串）
+        "riskLeval": 5,  // 风险等级（数字）
+        "isKeyStation": 2,  // 是否关键站（数字）
+        "createOnameFullPath": "中国南方电网有限责任公司/广西电网有限责任公司/南宁供电局/变电管理三所/五象巡维班",  // 创建组织全路径
+        "functionLocationIds": None,  // 功能位置ID列表
+        "isLancangMekong": "2",  // 是否澜湄标志
+        "primaryValue": None  // 主值
+    }
+]
+
+格式说明：这示例列表只有一个json，但实际上会返回零个及以上的json。
+
+【输出】
+输出的结果rusules格式也是列表，里面也包含多个json，每个json为存在错误的每张操作票的数据（只需要输出与错误相关的数据）以及错误信息。
+1、例如：如果是validate_time方法返回的数据，就会包括起始票号、结束票号、工作地点、受令时间、填票时间、操作开始时间、操作结束时间、汇报时间、操作人、监护人、值班负责人、错误信息等。
+[
+    {
+        "serialNoStart": 2500060,
+        "serialNoEnd": 2500060,
+        "functionLocationName": "35kV镇龙站",
+        "takeOrderTime": "2025-08-01 00:05:00",
+        "generateDate": "2025-08-01 00:01:40",
+        "operationStartTime": "2025-08-01 00:06:40",
+        "operationEndTime": "2025-08-01 00:08:20",
+        "reportTime": "2025-08-01 00:10:00",
+        "operatorUnames": "李四",
+        "guardianUnames": null,
+        "watchUname": null,
+        "errorInfo": "操作票（起始票号: 2500060, 结束票号: 2500060, 工作地点: 35kV镇龙站），存在时间逻辑错误：受令时间(2025-08-01 00:05:00) 晚于 填票时间(2025-08-01 00:01:40)"
+    },
+    {
+        "serialNoStart": 2500058,
+        "serialNoEnd": 2500058,
+        "functionLocationName": "35kV镇龙站",
+        "takeOrderTime": "2025-08-01 00:00:20",
+        "generateDate": "2025-08-01 00:01:47",
+        "operationStartTime": "2025-08-01 00:03:00",
+        "operationEndTime": "2025-08-01 00:08:00",
+        "reportTime": "2025-08-01 00:10:00",
+        "operatorUnames": "张三",
+        "guardianUnames": "李四",
+        "watchUname": "王五",
+        "errorInfo": "操作人张三同时持有多张操作票，与操作票（起始票号：2500061，结束票号：2500061，工作地点：35kV镇龙站）在操作时间上有重叠：2025-08-01 00:03:00~2025-08-01 00:08:00 与 2025-08-01 00:05:00~2025-08-01 00:11:40 时间重叠"
+    },
+    {
+        "serialNoStart": 2500061,
+        "serialNoEnd": 2500061,
+        "functionLocationName": "35kV镇龙站",
+        "takeOrderTime": "2025-08-01 00:04:00",
+        "generateDate": "2025-08-01 00:01:45",
+        "operationStartTime": "2025-08-01 00:05:00",
+        "operationEndTime": "2025-08-01 00:11:40",
+        "reportTime": "2025-08-01 00:13:20",
+        "operatorUnames": "张三",
+        "guardianUnames": "赵六",
+        "watchUname": null,
+        "errorInfo": "操作人张三同时持有多张操作票，与操作票（起始票号：2500058，结束票号：2500058，工作地点：35kV镇龙站）在操作时间上有重叠：2025-08-01 00:05:00~2025-08-01 00:11:40 与 2025-08-01 00:03:00~2025-08-01 00:08:00 时间重叠"
+    }
+]
+2、例如：如果是validate_plan_binding方法返回的数据，就会包括起始票号、结束票号、工作地点、受令时间、填票时间、操作开始时间、操作结束时间、汇报时间、操作人、监护人、值班负责人、绑定的检修计划ID、绑定的检修计划编号、错误信息等。
+[
+    {
+        "serialNoStart": 2500060,
+        "serialNoEnd": 2500060,
+        "functionLocationName": "35kV镇龙站",
+        "takeOrderTime": "2025-08-01 00:05:00",
+        "generateDate": "2025-08-01 00:01:40",
+        "operationStartTime": "2025-08-01 00:06:40",
+        "operationEndTime": "2025-08-01 00:08:20",
+        "reportTime": "2025-08-01 00:10:00",
+        "operatorUnames": "李四",
+        "guardianUnames": None,
+        "watchUname": None,
+        "workPlanIds": None,
+        "workPlanNos": None,
+        "errorInfo": "未绑定检修计划（缺少 workPlanIds/workPlanNos）"
+    },
+    {
+        "serialNoStart": 2500062,
+        "serialNoEnd": 2500062,
+        "functionLocationName": "35kV镇龙站",
+        "takeOrderTime": "2025-08-01 00:07:00",
+        "generateDate": "2025-08-01 00:02:40",
+        "operationStartTime": "2025-08-01 00:08:00",
+        "operationEndTime": "2025-08-01 00:09:20",
+        "reportTime": "2025-08-01 00:11:00",
+        "operatorUnames": "王五",
+        "guardianUnames": "赵六",
+        "watchUname": None,
+        "workPlanIds": None,
+        "workPlanNos": None,
+        "errorInfo": "未绑定检修计划（缺少 workPlanIds/workPlanNos）"
+    }
+]
+3、例如：如果是validate_content方法返回的数据，就会包括起始票号、结束票号、工作地点、受令时间、填票时间、操作开始时间、操作结束时间、汇报时间、操作人、监护人、值班负责人、错误信息等。
+
+
